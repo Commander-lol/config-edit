@@ -2,6 +2,15 @@
 name = "config-edit"
 version = "0.1.0"
 edition = "2024"
+authors = ["Louis Capitanchik <louis@weirdboi.com>"]
+description = "A command-line tool for performing simple edits to configuration files in various formats (TOML, YAML, JSON, Plist)"
+license = "Apache-2.0"
+
+repository = "https://github.com/commander-lol/config-edit"
+homepage = "https://github.com/commander-lol/config-edit"
+
+keywords = ["config", "toml", "yaml", "json", "plist"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
