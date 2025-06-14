@@ -1,6 +1,4 @@
 use crate::SupportedFormats;
-use serde::Deserializer;
-use std::io::Cursor;
 use std::path::PathBuf;
 
 pub trait ActionDef {
@@ -26,7 +24,8 @@ pub fn read_file(
 				.expect("Failed to transcode");
 		}
 		SupportedFormats::Plist => {
-			let value: plist::Value = plist::from_bytes(file_content.as_bytes()).expect("Failed to parse Plist");
+			let value: plist::Value =
+				plist::from_bytes(file_content.as_bytes()).expect("Failed to parse Plist");
 			json_content = serde_json::to_vec(&value).expect("Failed to serialize Plist to JSON");
 		}
 		SupportedFormats::Json => {

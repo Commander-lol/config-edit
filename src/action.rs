@@ -1,5 +1,4 @@
-use crate::SupportedFormats;
-use clap::{Subcommand, ValueEnum};
+use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
