@@ -56,7 +56,7 @@ fn run() -> Result<(), ConfigEditError> {
 	let mut opts = Cli::parse();
 	let input_format = determine_format(Some(&opts.input), opts.input_format)?;
 	let output_format =
-		determine_format(opts.output.as_ref(), opts.output_format).unwrap_or_else(|_| input_format);
+		determine_format(opts.output.as_ref(), opts.output_format).unwrap_or(input_format);
 
 	let input_value = read_file(&opts.input, input_format)?;
 	let output_value = opts.action.apply(input_value)?;
@@ -75,7 +75,7 @@ fn run() -> Result<(), ConfigEditError> {
 					source: Box::new(err),
 				}
 			})?;
-			write!(stream, "{}", toml_string).map_err(|err| ConfigEditError::Io(err))?;
+			write!(stream, "{}", toml_string).map_err(ConfigEditError::Io)?;
 		}
 		SupportedFormats::Yaml => {
 			serde_yaml::to_writer(stream, &output_value).map_err(|err| {

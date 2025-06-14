@@ -24,12 +24,6 @@ pub enum FormatError {
 	#[error("Failed to determine format for file: {path:?}")]
 	UnknownFormat { path: PathBuf },
 
-	#[error("Failed to parse {format} content: {source}")]
-	ParseError {
-		format: String,
-		source: Box<dyn std::error::Error + Send + Sync>,
-	},
-
 	#[error("Failed to transcode from {from} to {to}: {source}")]
 	TranscodeError {
 		from: String,
