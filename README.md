@@ -91,6 +91,22 @@ cargo build --release
 
 The binary will be available at `target/release/config-edit`.
 
+## Releases
+
+Releases are automatically built for Linux, macOS, and Windows using GitHub Actions when a semantic version tag is pushed. To create a new release:
+
+1. Update the version in `Cargo.toml`
+2. Commit the changes
+3. Tag the commit with a semantic version (e.g., `v1.0.0`)
+4. Push the tag to GitHub
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This will trigger the GitHub Actions workflow to build the binaries and create a release with the binaries attached.
+
 ## License
 
 [Apache License 2.0](LICENSE)
