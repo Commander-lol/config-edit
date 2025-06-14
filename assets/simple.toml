@@ -1,0 +1,7 @@
+[lib]
+name = "some_library"
+path = "src/lib.rs"
+crate-type = [
+    "rlib",
+    "staticlib"
+]
