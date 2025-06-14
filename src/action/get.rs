@@ -8,13 +8,12 @@ use serde_json::Value;
 pub struct GetAction {
 	/// The JSON Pointer (RFC6901) within the file to the value being retrieved.
 	///
-	/// A bare slash is not a valid reference to the root; instead, specify an
-	/// empty string ("") to get the entire document
-	key: String,
+	/// Omit the key to fetch the entire document
+	key: Option<String>,
 }
 
 impl ActionDef for GetAction {
 	fn apply(&mut self, value: Value) -> Option<Value> {
-		value.pointer(&self.key).cloned()
+		value.pointer(&self.key.clone().unwrap_or_default()).cloned()
 	}
 }

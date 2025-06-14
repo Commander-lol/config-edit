@@ -16,7 +16,8 @@ A command-line tool for performing simple edits to configuration files in variou
 Retrieve a value at a specified path:
 
 ```bash
-config-edit -i config.toml get ""  # Get the entire document
+config-edit -i config.toml get  # Get the entire document (omit the path)
+config-edit -i config.toml get ""  # Also gets the entire document
 config-edit -i config.toml get "/server/port"  # Get a specific value
 ```
 
@@ -54,10 +55,10 @@ Supported formats: `toml`, `yaml`, `json`, `plist`
 
 ```bash
 # Convert TOML to JSON
-config-edit -i config.toml -o config.json get ""
+config-edit -i config.toml -o config.json get
 
 # Convert JSON to YAML
-config-edit -i config.json -o config.yaml --of yaml get ""
+config-edit -i config.json -o config.yaml --of yaml get
 ```
 
 ### Modify a configuration value
