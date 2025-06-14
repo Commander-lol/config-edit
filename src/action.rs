@@ -1,3 +1,4 @@
+use crate::error::ConfigEditError;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -17,7 +18,7 @@ pub enum Action {
 }
 
 impl ActionDef for Action {
-	fn apply(&mut self, value: Value) -> Option<Value> {
+	fn apply(&mut self, value: Value) -> Result<Value, ConfigEditError> {
 		match self {
 			Action::Set(action) => action.apply(value),
 			Action::Append(action) => action.apply(value),

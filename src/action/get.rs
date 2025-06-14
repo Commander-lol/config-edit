@@ -1,4 +1,5 @@
 use crate::action::ActionDef;
+use crate::error::{ActionError, ConfigEditError};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,7 +14,11 @@ pub struct GetAction {
 }
 
 impl ActionDef for GetAction {
-	fn apply(&mut self, value: Value) -> Option<Value> {
-		value.pointer(&self.key.clone().unwrap_or_default()).cloned()
+	fn apply(&mut self, value: Value) -> Result<Value, ConfigEditError> {
+		let path = self.key.clone().unwrap_or_default();
+		value
+			.pointer(&path)
+			.cloned()
+			.ok_or_else(|| ActionError::PointerNotFound(path).into())
 	}
 }

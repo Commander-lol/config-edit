@@ -1,10 +1,13 @@
 use crate::action::{ActionDef, read_file};
+use crate::error::{ConfigEditError, FormatError, SerializationError};
 use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::process;
 
 mod action;
+mod error;
 
 /// Perform simple edits to toml, yaml, and json files
 #[derive(Parser, Serialize, Deserialize, Debug, Clone)]
@@ -43,60 +46,84 @@ pub enum SupportedFormats {
 }
 
 fn main() {
-	let mut opts = Cli::parse();
-	let input_format = determine_format(Some(&opts.input), opts.input_format)
-		.expect("Failed to determine input format");
-	let output_format =
-		determine_format(opts.output.as_ref(), opts.output_format).unwrap_or(input_format);
+	if let Err(err) = run() {
+		eprintln!("Error: {}", err);
+		process::exit(1);
+	}
+}
 
-	let input_value = read_file(&opts.input, input_format).expect("Failed to read input file");
-	let output_value = opts
-		.action
-		.apply(input_value)
-		.expect("Failed to apply action");
+fn run() -> Result<(), ConfigEditError> {
+	let mut opts = Cli::parse();
+	let input_format = determine_format(Some(&opts.input), opts.input_format)?;
+	let output_format =
+		determine_format(opts.output.as_ref(), opts.output_format).unwrap_or_else(|_| input_format);
+
+	let input_value = read_file(&opts.input, input_format)?;
+	let output_value = opts.action.apply(input_value)?;
 
 	let mut stream: Box<dyn io::Write> = match (opts.write, &opts.output) {
-		(true, _) => Box::new(
-			std::fs::File::create(&opts.input).expect("Failed to open input file for writing"),
-		),
-		(false, Some(output_path)) => Box::new(
-			std::fs::File::create(output_path).expect("Failed to open output file for writing"),
-		),
+		(true, _) => Box::new(std::fs::File::create(&opts.input)?),
+		(false, Some(output_path)) => Box::new(std::fs::File::create(output_path)?),
 		(false, None) => Box::new(io::stdout()),
 	};
 
 	match output_format {
 		SupportedFormats::Toml => {
-			let toml_string = toml::to_string(&output_value).expect("Failed to serialize to TOML");
-			write!(stream, "{}", toml_string).expect("Failed to write TOML to output");
+			let toml_string = toml::to_string(&output_value).map_err(|err| {
+				SerializationError::SerializeError {
+					format: "TOML".to_string(),
+					source: Box::new(err),
+				}
+			})?;
+			write!(stream, "{}", toml_string).map_err(|err| ConfigEditError::Io(err))?;
 		}
 		SupportedFormats::Yaml => {
-			serde_yaml::to_writer(stream, &output_value).expect("Failed to serialize to YAML");
+			serde_yaml::to_writer(stream, &output_value).map_err(|err| {
+				SerializationError::SerializeError {
+					format: "YAML".to_string(),
+					source: Box::new(err),
+				}
+			})?;
 		}
 		SupportedFormats::Json => {
-			serde_json::to_writer_pretty(stream, &output_value)
-				.expect("Failed to serialize to JSON");
+			serde_json::to_writer_pretty(stream, &output_value).map_err(|err| {
+				SerializationError::SerializeError {
+					format: "JSON".to_string(),
+					source: Box::new(err),
+				}
+			})?;
 		}
 		SupportedFormats::Plist => {
-			plist::to_writer_xml(stream, &output_value).expect("Failed to serialize to Plist");
+			plist::to_writer_xml(stream, &output_value).map_err(|err| {
+				SerializationError::SerializeError {
+					format: "Plist".to_string(),
+					source: Box::new(err),
+				}
+			})?;
 		}
 	}
+
+	Ok(())
 }
 
 fn determine_format(
 	path: Option<&PathBuf>,
 	explicit_format: Option<SupportedFormats>,
-) -> Option<SupportedFormats> {
+) -> Result<SupportedFormats, ConfigEditError> {
 	match (path, explicit_format) {
 		(Some(path), _) => match path.extension() {
-			Some(ext) if ext == "toml" => Some(SupportedFormats::Toml),
-			Some(ext) if ext == "yaml" => Some(SupportedFormats::Yaml),
-			Some(ext) if ext == "yml" => Some(SupportedFormats::Yaml),
-			Some(ext) if ext == "json" => Some(SupportedFormats::Json),
-			Some(ext) if ext == "plist" => Some(SupportedFormats::Plist),
-			_ => explicit_format,
+			Some(ext) if ext == "toml" => Ok(SupportedFormats::Toml),
+			Some(ext) if ext == "yaml" => Ok(SupportedFormats::Yaml),
+			Some(ext) if ext == "yml" => Ok(SupportedFormats::Yaml),
+			Some(ext) if ext == "json" => Ok(SupportedFormats::Json),
+			Some(ext) if ext == "plist" => Ok(SupportedFormats::Plist),
+			_ => explicit_format
+				.ok_or_else(|| FormatError::UnknownFormat { path: path.clone() }.into()),
 		},
-		(_, Some(format)) => Some(format),
-		_ => None,
+		(_, Some(format)) => Ok(format),
+		_ => Err(FormatError::UnknownFormat {
+			path: PathBuf::from("<unknown>"),
+		}
+		.into()),
 	}
 }

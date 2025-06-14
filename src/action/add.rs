@@ -1,4 +1,5 @@
 use crate::action::action_def::ActionDef;
+use crate::error::{ActionError, ConfigEditError};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,7 +14,7 @@ pub struct SetAction {
 }
 
 impl ActionDef for SetAction {
-	fn apply(&mut self, mut target: Value) -> Option<Value> {
+	fn apply(&mut self, mut target: Value) -> Result<Value, ConfigEditError> {
 		let value = match serde_json::from_str(&self.value) {
 			Ok(v) => v,
 			Err(_) => Value::String(self.value.clone()),
@@ -21,9 +22,10 @@ impl ActionDef for SetAction {
 
 		if let Some(inner) = target.pointer_mut(&self.key) {
 			*inner = value;
+			Ok(target)
+		} else {
+			Err(ActionError::PointerNotFound(self.key.clone()).into())
 		}
-
-		Some(target)
 	}
 }
 
@@ -38,7 +40,7 @@ pub struct AppendAction {
 }
 
 impl ActionDef for AppendAction {
-	fn apply(&mut self, mut target: Value) -> Option<Value> {
+	fn apply(&mut self, mut target: Value) -> Result<Value, ConfigEditError> {
 		let value = match serde_json::from_str(&self.value) {
 			Ok(v) => v,
 			Err(_) => Value::String(self.value.clone()),
@@ -46,12 +48,22 @@ impl ActionDef for AppendAction {
 
 		if let Some(inner) = target.pointer_mut(&self.key) {
 			match inner {
-				Value::Array(arr) => arr.push(value),
-				Value::Null => *inner = Value::Array(vec![value]),
-				_ => {}
+				Value::Array(arr) => {
+					arr.push(value);
+					Ok(target)
+				}
+				Value::Null => {
+					*inner = Value::Array(vec![value]);
+					Ok(target)
+				}
+				_ => Err(ActionError::ApplyError(format!(
+					"Cannot append to non-array value at path: {}",
+					self.key
+				))
+				.into()),
 			}
+		} else {
+			Err(ActionError::PointerNotFound(self.key.clone()).into())
 		}
-
-		Some(target)
 	}
 }
