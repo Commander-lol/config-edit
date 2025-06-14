@@ -21,3 +21,6 @@ toml = "0.8"
 plist = "1"
 clap = { version = "4", features = ["derive"] }
 thiserror = "2"
+
+[dev-dependencies]
+test-case = "3.3"
